@@ -40,15 +40,37 @@ php artisan vendor:publish --tag="clarity-views"
 
 ## Usage
 
+### General Tracking
+
 - Create an account: The first thing you need to do is create an account on Microsoft Clarity. You can sign up on their website and follow the steps to create your account. Then, get your tracking code and that's it.
 - Simply add the blade components to your base layout files.
 
-The `enabled` attribute is optional, but can be used to control the tags integration from blade files that extend the base layout. It accepts `true/false`. 
+The `enabled` attribute is *optional*, but can be used to control the tags integration from blade files that extend the base layout. It accepts `true/false`. 
 This can still be controlled globally via the `.env` file should you need to disable the integration global on different environments as well.
 
 ```html
 <!-- Should be placed in the head -->
 <x-clarity::script :enabled="$enabled" />
+```
+### Identify API
+
+To implement the [Identify API](https://learn.microsoft.com/en-us/clarity/setup-and-installation/identify-api), use `identify` component.
+Set `CLARITY_IDENTIFICATION_ENABLED` value to `true` on the env file. 
+
+#### Attributes:
+* `user` attribute is *required* accepts the User Model instance or any object. The `email` and `name` attributes are used.
+* `enabled` attribute is *optional*. 
+* `custom_session_id` attribute is *optional*.
+* `custom_page_id` attribute is *optional*.
+
+```html
+@auth
+    <x-clarity::identify :user="request()->user()"/>
+@endauth
+```
+This will compile as:
+```js
+window.clarity("identify", "user@example.com", null, null, "Username")
 ```
 
 ## Testing
