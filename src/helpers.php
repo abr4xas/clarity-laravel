@@ -9,10 +9,10 @@ if (! function_exists('clarity_tag')) {
      * Set a custom tag for the current Clarity session.
      *
      * @param  string  $key  The key for the custom tag
-     * @param  string|array  ...$values  The value(s) for the custom tag
+     * @param  mixed  ...$values  The value(s) for the custom tag (strings or arrays)
      * @return string|null The rendered script tag or null
      */
-    function clarity_tag(string $key, string|array ...$values): ?string
+    function clarity_tag(string $key, mixed ...$values): ?string
     {
         if (! config('clarity.enabled', false)) {
             return null;

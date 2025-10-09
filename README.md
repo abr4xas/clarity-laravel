@@ -140,7 +140,7 @@ clarity_identify(
 
 This package provides convenient helper functions for use anywhere in your Laravel application:
 
-- `clarity_tag(string $key, string|array ...$values): ?string` - Set custom tags for session filtering
+- `clarity_tag(string $key, mixed ...$values): ?string` - Set custom tags for session filtering
 - `clarity_identify(object $user, ?string $customSessionId = null, ?string $customPageId = null): ?string` - Identify a user in the current session
 
 These helpers respect your configuration settings and will return `null` when Clarity is disabled.
