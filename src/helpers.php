@@ -58,3 +58,86 @@ if (! function_exists('clarity_identify')) {
         ])->render();
     }
 }
+
+if (! function_exists('clarity_consent')) {
+    /**
+     * Set consent for the current Clarity session.
+     *
+     * @param  bool  $granted  Whether consent is granted (true) or denied (false)
+     * @return string|null The rendered script tag or null
+     */
+    function clarity_consent(bool $granted = true): ?string
+    {
+        if (! config('clarity.enabled', false)) {
+            return null;
+        }
+
+        return View::make('clarity::components.consent', [
+            'enabled' => true,
+            'granted' => $granted,
+        ])->render();
+    }
+}
+
+if (! function_exists('clarity_set_custom_user_id')) {
+    /**
+     * Set a custom user ID for the current Clarity session.
+     * Requires identify API to be enabled.
+     *
+     * @param  string  $userId  The custom user ID
+     * @return string|null The rendered script tag or null
+     */
+    function clarity_set_custom_user_id(string $userId): ?string
+    {
+        if (! config('clarity.enabled', false) || ! config('clarity.enabled_identify_api', false)) {
+            return null;
+        }
+
+        return View::make('clarity::components.custom-user-id', [
+            'enabled' => true,
+            'user_id' => $userId,
+        ])->render();
+    }
+}
+
+if (! function_exists('clarity_set_custom_session_id')) {
+    /**
+     * Set a custom session ID for the current Clarity session.
+     * Requires identify API to be enabled.
+     *
+     * @param  string  $sessionId  The custom session ID
+     * @return string|null The rendered script tag or null
+     */
+    function clarity_set_custom_session_id(string $sessionId): ?string
+    {
+        if (! config('clarity.enabled', false) || ! config('clarity.enabled_identify_api', false)) {
+            return null;
+        }
+
+        return View::make('clarity::components.custom-session-id', [
+            'enabled' => true,
+            'session_id' => $sessionId,
+        ])->render();
+    }
+}
+
+if (! function_exists('clarity_set_custom_page_id')) {
+    /**
+     * Set a custom page ID for the current Clarity session.
+     * Requires identify API to be enabled.
+     *
+     * @param  string  $pageId  The custom page ID
+     * @return string|null The rendered script tag or null
+     */
+    function clarity_set_custom_page_id(string $pageId): ?string
+    {
+        if (! config('clarity.enabled', false) || ! config('clarity.enabled_identify_api', false)) {
+            return null;
+        }
+
+        return View::make('clarity::components.custom-page-id', [
+            'enabled' => true,
+            'page_id' => $pageId,
+        ])->render();
+    }
+}

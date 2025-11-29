@@ -30,7 +30,7 @@ it('displays clarity tag', function (): void {
     $view->assertSee('script');
 });
 
-it('does\'t display clarity tag', function (): void {
+it("does't display clarity tag", function (): void {
     $view = $this->blade('<x-clarity::script :enabled="$enabled"/>', ['enabled' => false]);
 
     $view->assertSee('');
@@ -289,4 +289,433 @@ it('clarity_tag helper handles special characters in values', function (): void 
     // Ensure JSON encoding handles special characters
     $jsonStart = mb_strpos((string) $output, '["');
     expect($jsonStart)->toBeGreaterThan(0);
+});
+
+// Global Tags Tests
+it('displays global tags in script component', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.global_tags' => [
+            'environment' => ['production'],
+            'version' => ['1.0.0'],
+        ],
+    ]);
+
+    $view = $this->blade('<x-clarity::script />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('"environment"', false)
+        ->assertSee('"version"', false)
+        ->assertSee('["production"]', false)
+        ->assertSee('["1.0.0"]', false);
+});
+
+it('does not display global tags when disabled', function (): void {
+    config([
+        'clarity.enabled' => false,
+        'clarity.global_tags' => ['test' => ['value']],
+    ]);
+
+    $view = $this->blade('<x-clarity::script />', []);
+
+    $view->assertDontSee('"test"', false);
+});
+
+it('handles empty global tags', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.global_tags' => [],
+    ]);
+
+    $view = $this->blade('<x-clarity::script />', []);
+
+    $view->assertSee('script', false)
+        ->assertDontSee('setGlobalTags', false);
+});
+
+// Consent API Tests
+it('displays consent component with v2 granted', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.consent_version' => 'v2',
+    ]);
+
+    $view = $this->blade('<x-clarity::consent :granted="true" />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('"consent"', false)
+        ->assertSee('"granted"', false);
+});
+
+it('displays consent component with v2 denied', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.consent_version' => 'v2',
+    ]);
+
+    $view = $this->blade('<x-clarity::consent :granted="false" />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('"consent"', false)
+        ->assertSee('"denied"', false);
+});
+
+it('displays consent component with v1', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.consent_version' => 'v1',
+    ]);
+
+    $view = $this->blade('<x-clarity::consent :granted="true" />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('"consent"', false)
+        ->assertSee('true', false);
+});
+
+it('clarity_consent helper returns script when enabled', function (): void {
+    config(['clarity.enabled' => true]);
+
+    $output = clarity_consent(true);
+
+    expect($output)
+        ->toBeString()
+        ->toContain('window.clarity')
+        ->toContain('"consent"');
+});
+
+it('clarity_consent helper returns null when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $output = clarity_consent(true);
+
+    expect($output)->toBeNull();
+});
+
+it('consent component does not display when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $view = $this->blade('<x-clarity::consent :granted="true" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('consent component handles enabled attribute', function (): void {
+    config(['clarity.enabled' => true]);
+
+    $view = $this->blade('<x-clarity::consent :granted="true" :enabled="false" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+// Custom ID Helpers Tests
+it('clarity_set_custom_user_id helper returns script when enabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $output = clarity_set_custom_user_id('user-123');
+
+    expect($output)
+        ->toBeString()
+        ->toContain('window.clarity')
+        ->toContain('"identify"')
+        ->toContain('user-123');
+});
+
+it('clarity_set_custom_user_id helper returns null when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $output = clarity_set_custom_user_id('user-123');
+
+    expect($output)->toBeNull();
+});
+
+it('clarity_set_custom_user_id helper returns null when identify api is disabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => false,
+    ]);
+
+    $output = clarity_set_custom_user_id('user-123');
+
+    expect($output)->toBeNull();
+});
+
+it('clarity_set_custom_session_id helper returns script when enabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $output = clarity_set_custom_session_id('session-456');
+
+    expect($output)
+        ->toBeString()
+        ->toContain('window.clarity')
+        ->toContain('"identify"')
+        ->toContain('session-456');
+});
+
+it('clarity_set_custom_session_id helper returns null when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $output = clarity_set_custom_session_id('session-456');
+
+    expect($output)->toBeNull();
+});
+
+it('clarity_set_custom_session_id helper returns null when identify api is disabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => false,
+    ]);
+
+    $output = clarity_set_custom_session_id('session-456');
+
+    expect($output)->toBeNull();
+});
+
+it('clarity_set_custom_page_id helper returns script when enabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $output = clarity_set_custom_page_id('page-789');
+
+    expect($output)
+        ->toBeString()
+        ->toContain('window.clarity')
+        ->toContain('"identify"')
+        ->toContain('page-789');
+});
+
+it('clarity_set_custom_page_id helper returns null when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $output = clarity_set_custom_page_id('page-789');
+
+    expect($output)->toBeNull();
+});
+
+it('clarity_set_custom_page_id helper returns null when identify api is disabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => false,
+    ]);
+
+    $output = clarity_set_custom_page_id('page-789');
+
+    expect($output)->toBeNull();
+});
+
+// Custom ID Components Tests
+it('displays custom user id component', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-user-id user_id="user-123" />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('"identify"', false)
+        ->assertSee('user-123', false);
+});
+
+it('does not display custom user id component when identify api is disabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => false,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-user-id user_id="user-123" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('does not display custom user id component when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $view = $this->blade('<x-clarity::custom-user-id user_id="user-123" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('custom user id component handles enabled attribute', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-user-id user_id="user-123" :enabled="false" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('custom user id component does not display without user_id', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-user-id />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('displays custom session id component', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-session-id session_id="session-456" />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('"identify"', false)
+        ->assertSee('session-456', false);
+});
+
+it('does not display custom session id component when identify api is disabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => false,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-session-id session_id="session-456" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('does not display custom session id component when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $view = $this->blade('<x-clarity::custom-session-id session_id="session-456" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('custom session id component handles enabled attribute', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-session-id session_id="session-456" :enabled="false" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('custom session id component does not display without session_id', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-session-id />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('displays custom page id component', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-page-id page_id="page-789" />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('"identify"', false)
+        ->assertSee('page-789', false);
+});
+
+it('does not display custom page id component when identify api is disabled', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => false,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-page-id page_id="page-789" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('does not display custom page id component when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $view = $this->blade('<x-clarity::custom-page-id page_id="page-789" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('custom page id component handles enabled attribute', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-page-id page_id="page-789" :enabled="false" />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+it('custom page id component does not display without page_id', function (): void {
+    config([
+        'clarity.enabled' => true,
+        'clarity.enabled_identify_api' => true,
+    ]);
+
+    $view = $this->blade('<x-clarity::custom-page-id />', []);
+
+    $view->assertDontSee('window.clarity', false);
+});
+
+// Queue System Tests
+it('tag component includes queue functionality', function (): void {
+    config(['clarity.enabled' => true]);
+
+    $view = $this->blade('<x-clarity::tag key="test" :values="[\'value\']" />', []);
+
+    $view->assertSee('window.clarity', false)
+        ->assertSee('_clarityQueue', false);
+});
+
+it('queue component renders correctly', function (): void {
+    config(['clarity.enabled' => true]);
+
+    $view = $this->blade('<x-clarity::queue />', []);
+
+    $view->assertSee('_clarityQueue', false)
+        ->assertSee('processQueue', false);
+});
+
+it('queue component does not display when disabled', function (): void {
+    config(['clarity.enabled' => false]);
+
+    $view = $this->blade('<x-clarity::queue />', []);
+
+    $view->assertDontSee('_clarityQueue', false);
+});
+
+it('queue component handles enabled attribute', function (): void {
+    config(['clarity.enabled' => true]);
+
+    $view = $this->blade('<x-clarity::queue :enabled="false" />', []);
+
+    $view->assertDontSee('_clarityQueue', false);
+});
+
+it('queue component processes queued items correctly', function (): void {
+    config(['clarity.enabled' => true]);
+
+    $view = $this->blade('<x-clarity::queue />', []);
+
+    $view->assertSee('_clarityQueue', false)
+        ->assertSee('processQueue', false)
+        ->assertSee('window.clarity', false)
+        ->assertSee('method', false);
 });

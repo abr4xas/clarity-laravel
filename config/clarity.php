@@ -18,4 +18,29 @@ return [
     |
     */
     'global_tags' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Consent API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure Clarity Consent API for GDPR/CCPA compliance.
+    | consent_version: 'v1' or 'v2' (v2 is recommended)
+    | consent_required: Set to true if consent is required for your region
+    |
+    */
+    'consent_version' => env('CLARITY_CONSENT_VERSION', 'v2'),
+    'consent_required' => env('CLARITY_CONSENT_REQUIRED', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-Tagging Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Automatically tag sessions with environment, routes, and user information.
+    |
+    */
+    'auto_tag_environment' => env('CLARITY_AUTO_TAG_ENV', true),
+    'auto_tag_routes' => env('CLARITY_AUTO_TAG_ROUTES', false),
+    'auto_identify_users' => env('CLARITY_AUTO_IDENTIFY', false),
 ];

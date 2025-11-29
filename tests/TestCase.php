@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Abr4xas\ClarityLaravel\Tests;
 
 use Abr4xas\ClarityLaravel\ClarityLaravelServiceProvider;
@@ -17,7 +19,7 @@ class TestCase extends Orchestra
         ];
     }
 
-    public function getEnvironmentSetUp($app): void
+    protected function getEnvironmentSetUp($app): void
     {
         $app['config']->set('clarity.id', 'XXXXXX');
         $app['config']->set('clarity.active', true);

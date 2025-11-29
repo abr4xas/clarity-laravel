@@ -21,11 +21,11 @@
         "spatie/laravel-package-tools": "^1.92.7"
     },
     "require-dev": {
-        "laravel/pint": "^1.25.1",
-        "orchestra/testbench": "^10.6.0",
-        "pestphp/pest": "^4.1.1",
+        "laravel/pint": "^1.26.0",
+        "orchestra/testbench": "^10.8.0",
+        "pestphp/pest": "^4.1.6",
         "pestphp/pest-plugin-laravel": "^4.0",
-        "rector/rector": "^2.2"
+        "rector/rector": "^2.2.9"
     },
     "autoload": {
         "psr-4": {
@@ -39,8 +39,15 @@
     },
     "scripts": {
         "refactor": "rector",
-        "test": "pest --colors=always --parallel --no-coverage",
-        "format": "vendor/bin/pint"
+        "lint": "pint",
+        "test:refactor": "rector --dry-run",
+        "test:lint": "pint --test",
+        "test:unit": "pest --colors=always --parallel --no-coverage",
+        "test": [
+            "@test:refactor",
+            "@test:lint",
+            "@test:unit"
+        ]
     },
     "config": {
         "sort-packages": true,
