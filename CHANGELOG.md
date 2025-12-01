@@ -2,6 +2,16 @@
 
 All notable changes to `clarity-laravel` will be documented in this file.
 
+## v2.0.0 - 2025-12-01
+
+### What's Changed
+
+* ⬆️ Bump stefanzweifel/git-auto-commit-action from 6 to 7 by @dependabot[bot] in https://github.com/abr4xas/clarity-laravel/pull/17
+* ⬆️ Bump actions/checkout from 5 to 6 by @dependabot[bot] in https://github.com/abr4xas/clarity-laravel/pull/18
+* feat: add comprehensive Microsoft Clarity features and improvements by @abr4xas in https://github.com/abr4xas/clarity-laravel/pull/19
+
+**Full Changelog**: https://github.com/abr4xas/clarity-laravel/compare/v1.6.0...v2.0.0
+
 ## v1.6.0 - 2025-10-09
 
 ### What's Changed
