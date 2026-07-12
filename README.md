@@ -1,11 +1,18 @@
 # Microsoft Clarity for Laravel.
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/abr4xas/clarity-laravel.svg?style=flat-square)](https://packagist.org/packages/abr4xas/clarity-laravel)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/abr4xas/clarity-laravel/run-tests.yml?branch=master&label=tests&style=flat-square)](https://github.com/abr4xas/clarity-laravel/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/abr4xas/clarity-laravel/run-tests.yml?branch=master&label=tests&style=flat-square)](https://github.com/abr4xas/clarity-laravel/actions?query=workflow%3Arun-tests+branch%3Amaster)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/abr4xas/clarity-laravel/fix-php-code-style-issues.yml?branch=master&label=code%20style&style=flat-square)](https://github.com/abr4xas/clarity-laravel/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amaster)
 [![Total Downloads](https://img.shields.io/packagist/dt/abr4xas/clarity-laravel.svg?style=flat-square)](https://packagist.org/packages/abr4xas/clarity-laravel)
 
 Easy integration of Microsoft Clarity into your Laravel application.
+
+## Requirements
+
+- PHP 8.3 or 8.4
+- Laravel 10, 11, 12, or 13
+
+> The package runs on Laravel 10 through 13. Automated tests run against the latest stable release (Laravel 13).
 
 ## Installation
 
@@ -289,15 +296,11 @@ clarity_set_custom_page_id('page-789');
 <x-clarity::custom-page-id page_id="page-789" />
 ```
 
-### Queue System
+### Loading & buffering
 
-The package includes a queue system that ensures tags and other Clarity API calls are executed even if Clarity hasn't fully loaded yet. This is handled automatically - tags are queued and processed when Clarity becomes available.
+Every tag, identification, and consent call is dispatched through `window.clarity(...)`. Calls made before the Clarity tag finishes loading are buffered natively by Clarity (its own `clarity.q` queue) and replayed automatically once it's ready — so there's nothing to configure and no component to include. This is handled for you.
 
-You can also manually include the queue component if needed:
-
-```html
-<x-clarity::queue />
-```
+> **Upgrading from v2?** The `<x-clarity::queue>` component was removed in v3 — it's no longer needed, buffering is native. Delete any `<x-clarity::queue />` from your templates.
 
 ## Available Helper Functions
 
