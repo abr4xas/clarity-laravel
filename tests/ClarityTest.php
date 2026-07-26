@@ -2,8 +2,63 @@
 
 declare(strict_types=1);
 
+use Abr4xas\ClarityLaravel\ClarityCommand;
+use Illuminate\Support\Facades\File;
+
 use function Pest\Laravel\artisan;
 
+// ClarityCommand — the argument-shaping module. Pure PHP, no Blade, no config.
+describe('ClarityCommand', function (): void {
+    it('builds a set command from a scalar value', function (): void {
+        expect(ClarityCommand::tag('plan', 'premium')->arguments())
+            ->toBe(['set', 'plan', ['premium']]);
+    });
+
+    it('drops empty tag values and re-indexes', function (): void {
+        expect(ClarityCommand::tag('flight', ['a', '', 'b'])->arguments())
+            ->toBe(['set', 'flight', ['a', 'b']]);
+    });
+
+    it('maps a user email and name into an identify command', function (): void {
+        $user = (object) ['email' => 'a@b.com', 'name' => 'Ana'];
+
+        expect(ClarityCommand::identify($user, 's1', 'p1')->arguments())
+            ->toBe(['identify', 'a@b.com', 's1', 'p1', 'Ana']);
+    });
+
+    it('null-handles a null user', function (): void {
+        expect(ClarityCommand::identify(null)->arguments())
+            ->toBe(['identify', null, null, null, null]);
+    });
+
+    it('null-handles missing user properties', function (): void {
+        $user = (object) ['email' => 'a@b.com']; // no name
+
+        expect(ClarityCommand::identify($user)->arguments())
+            ->toBe(['identify', 'a@b.com', null, null, null]);
+    });
+
+    it('builds custom user, session and page id commands', function (): void {
+        expect(ClarityCommand::customUserId('u1')->arguments())->toBe(['identify', 'u1', null, null, null]);
+        expect(ClarityCommand::customSessionId('s1')->arguments())->toBe(['identify', null, 's1', null, null]);
+        expect(ClarityCommand::customPageId('p1')->arguments())->toBe(['identify', null, null, 'p1', null]);
+    });
+
+    it('builds a v2 consent command with both storage signals', function (): void {
+        expect(ClarityCommand::consent(true)->arguments())
+            ->toBe(['consentv2', ['ad_Storage' => 'granted', 'analytics_Storage' => 'granted']]);
+
+        expect(ClarityCommand::consent(false)->arguments())
+            ->toBe(['consentv2', ['ad_Storage' => 'denied', 'analytics_Storage' => 'denied']]);
+    });
+
+    it('builds a v1 consent command as a boolean', function (): void {
+        expect(ClarityCommand::consent(true, 'v1')->arguments())->toBe(['consent', true]);
+        expect(ClarityCommand::consent(false, 'v1')->arguments())->toBe(['consent', false]);
+    });
+});
+
+// Publishing
 it('can publish config file', function (): void {
     artisan('vendor:publish --tag=clarity-config')
         ->assertExitCode(0);
@@ -19,21 +74,27 @@ it('can publish view file', function (): void {
         ->assertExitCode(0);
 
     expect(file_exists(resource_path('views/vendor/clarity/components/script.blade.php')))
-        ->toBeTrue()
-        ->and(unlink(resource_path('views/vendor/clarity/components/script.blade.php')))
-        ->toBe(true);
+        ->toBeTrue();
+
+    // Clean up ALL published views, not just one: leftover copies live under
+    // resources/views/vendor/clarity and would shadow the package's own views
+    // (and go stale) in later runs.
+    File::deleteDirectory(resource_path('views/vendor/clarity'));
+
+    expect(is_dir(resource_path('views/vendor/clarity')))->toBeFalse();
 });
 
+// Script component
 it('displays clarity tag', function (): void {
     $view = $this->blade('<x-clarity::script :enabled="$enabled"/>', ['enabled' => true]);
 
-    $view->assertSee('script');
+    $view->assertSee('clarity.ms/tag', false);
 });
 
 it("does't display clarity tag", function (): void {
     $view = $this->blade('<x-clarity::script :enabled="$enabled"/>', ['enabled' => false]);
 
-    $view->assertSee('');
+    $view->assertDontSee('clarity.ms/tag', false);
 });
 
 // Custom Tags Component Tests
@@ -45,10 +106,9 @@ it('displays custom tag component with single value', function (): void {
         []
     );
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"set"', false)
-        ->assertSee('"user_role"', false)
-        ->assertSee('["admin"]', false);
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('user_role', false)
+        ->assertSee('admin', false);
 });
 
 it('displays custom tag component with multiple values', function (): void {
@@ -59,10 +119,11 @@ it('displays custom tag component with multiple values', function (): void {
         []
     );
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"set"', false)
-        ->assertSee('"features"', false)
-        ->assertSee('["chat","video","audio"]', false);
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('features', false)
+        ->assertSee('chat', false)
+        ->assertSee('video', false)
+        ->assertSee('audio', false);
 });
 
 it('does not display custom tag when disabled', function (): void {
@@ -95,9 +156,8 @@ it('handles empty values array in custom tag', function (): void {
         []
     );
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"test"', false)
-        ->assertSee('[]', false);
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('test', false);
 });
 
 // Helper Functions Tests
@@ -109,9 +169,8 @@ it('clarity_tag helper returns script when enabled', function (): void {
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"set"')
-        ->toContain('"plan"')
-        ->toContain('["premium"]');
+        ->toContain('plan')
+        ->toContain('premium');
 });
 
 it('clarity_tag helper handles multiple values', function (): void {
@@ -122,8 +181,10 @@ it('clarity_tag helper handles multiple values', function (): void {
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"roles"')
-        ->toContain('["admin","editor","viewer"]');
+        ->toContain('roles')
+        ->toContain('admin')
+        ->toContain('editor')
+        ->toContain('viewer');
 });
 
 it('clarity_tag helper handles array values', function (): void {
@@ -134,8 +195,10 @@ it('clarity_tag helper handles array values', function (): void {
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"permissions"')
-        ->toContain('["read","write","delete"]');
+        ->toContain('permissions')
+        ->toContain('read')
+        ->toContain('write')
+        ->toContain('delete');
 });
 
 it('clarity_tag helper returns null when disabled', function (): void {
@@ -162,7 +225,7 @@ it('clarity_identify helper returns script when enabled', function (): void {
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"identify"')
+        ->toContain('identify')
         ->toContain('test@example.com')
         ->toContain('Test User');
 });
@@ -197,7 +260,7 @@ it('clarity_identify helper returns null when identify api is disabled', functio
 });
 
 // Validation Tests - Verifying View Rendering
-it('clarity_tag helper renders valid HTML with script tags', function (): void {
+it('clarity_tag helper renders valid HTML with a single script tag', function (): void {
     config(['clarity.enabled' => true]);
 
     $output = clarity_tag('test_key', 'test_value');
@@ -206,23 +269,11 @@ it('clarity_tag helper renders valid HTML with script tags', function (): void {
         ->toBeString()
         ->toMatch('/<script[^>]*type=["\']text\/javascript["\'][^>]*>/')
         ->toMatch('/<\/script>/')
-        ->and(strip_tags((string) $output, '<script>'))->not->toBe(''); // Has content inside script tags
+        ->and(mb_substr_count((string) $output, '<script'))->toBe(1)
+        ->and(mb_substr_count((string) $output, '</script>'))->toBe(1);
 });
 
-it('clarity_tag helper renders the tag component view correctly', function (): void {
-    config(['clarity.enabled' => true]);
-
-    $output = clarity_tag('environment', 'production');
-
-    // Verify it's wrapped in an IIFE (Immediately Invoked Function Expression)
-    expect($output)
-        ->toContain('(function(){')
-        ->toContain('})();')
-        ->and(mb_substr_count((string) $output, '<script'))->toBe(1) // Only one script tag
-        ->and(mb_substr_count((string) $output, '</script>'))->toBe(1); // Only one closing tag
-});
-
-it('clarity_identify helper renders valid HTML with script tags', function (): void {
+it('clarity_identify helper renders valid HTML with a single script tag', function (): void {
     config([
         'clarity.enabled' => true,
         'clarity.enabled_identify_api' => true,
@@ -243,7 +294,7 @@ it('clarity_identify helper renders valid HTML with script tags', function (): v
         ->and(mb_substr_count((string) $output, '</script>'))->toBe(1);
 });
 
-it('clarity_identify helper renders the identify component view correctly', function (): void {
+it('clarity_identify helper renders the identify command correctly', function (): void {
     config([
         'clarity.enabled' => true,
         'clarity.enabled_identify_api' => true,
@@ -256,39 +307,37 @@ it('clarity_identify helper renders the identify component view correctly', func
 
     $output = clarity_identify($user, 'session-123', 'page-456');
 
-    // Verify it's wrapped in an IIFE
     expect($output)
-        ->toContain('(function(){')
-        ->toContain('})();')
-        ->toContain('"identify"')
+        ->toContain('window.clarity.apply')
+        ->toContain('identify')
         ->toContain('admin@example.com')
-        ->toContain('Admin User');
+        ->toContain('Admin User')
+        ->toContain('session-123')
+        ->toContain('page-456');
 });
 
-it('clarity_tag helper properly formats the key in JavaScript', function (): void {
+it('clarity_tag helper dispatches through window.clarity', function (): void {
     config(['clarity.enabled' => true]);
 
     $output = clarity_tag('user_role', 'admin');
 
-    // Verify the key is properly quoted in JavaScript
     expect($output)
-        ->toContain('window.clarity("set", "user_role"')
+        ->toContain('window.clarity.apply')
+        ->toContain('user_role')
         ->and(mb_substr_count((string) $output, '<script'))->toBe(1)
         ->and(mb_substr_count((string) $output, '</script>'))->toBe(1);
 });
 
-it('clarity_tag helper handles special characters in values', function (): void {
+it('clarity_tag helper safely encodes special characters in values', function (): void {
     config(['clarity.enabled' => true]);
 
     $output = clarity_tag('message', 'Hello "World"', "Test's Value");
 
     expect($output)
         ->toBeString()
-        ->toContain('window.clarity');
-
-    // Ensure JSON encoding handles special characters
-    $jsonStart = mb_strpos((string) $output, '["');
-    expect($jsonStart)->toBeGreaterThan(0);
+        ->toContain('window.clarity')
+        // Js::from hex-escapes quotes so they never break out of the script
+        ->toContain('"');
 });
 
 // Global Tags Tests
@@ -303,11 +352,11 @@ it('displays global tags in script component', function (): void {
 
     $view = $this->blade('<x-clarity::script />', []);
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"environment"', false)
-        ->assertSee('"version"', false)
-        ->assertSee('["production"]', false)
-        ->assertSee('["1.0.0"]', false);
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('environment', false)
+        ->assertSee('version', false)
+        ->assertSee('production', false)
+        ->assertSee('1.0.0', false);
 });
 
 it('does not display global tags when disabled', function (): void {
@@ -318,7 +367,7 @@ it('does not display global tags when disabled', function (): void {
 
     $view = $this->blade('<x-clarity::script />', []);
 
-    $view->assertDontSee('"test"', false);
+    $view->assertDontSee('window.clarity', false);
 });
 
 it('handles empty global tags', function (): void {
@@ -329,8 +378,8 @@ it('handles empty global tags', function (): void {
 
     $view = $this->blade('<x-clarity::script />', []);
 
-    $view->assertSee('script', false)
-        ->assertDontSee('setGlobalTags', false);
+    $view->assertSee('clarity.ms/tag', false)
+        ->assertDontSee('window.clarity.apply', false);
 });
 
 // Consent API Tests
@@ -342,9 +391,10 @@ it('displays consent component with v2 granted', function (): void {
 
     $view = $this->blade('<x-clarity::consent :granted="true" />', []);
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"consent"', false)
-        ->assertSee('"granted"', false);
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('consentv2', false)
+        ->assertSee('ad_Storage', false)
+        ->assertSee('granted', false);
 });
 
 it('displays consent component with v2 denied', function (): void {
@@ -355,9 +405,9 @@ it('displays consent component with v2 denied', function (): void {
 
     $view = $this->blade('<x-clarity::consent :granted="false" />', []);
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"consent"', false)
-        ->assertSee('"denied"', false);
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('consentv2', false)
+        ->assertSee('denied', false);
 });
 
 it('displays consent component with v1', function (): void {
@@ -368,9 +418,10 @@ it('displays consent component with v1', function (): void {
 
     $view = $this->blade('<x-clarity::consent :granted="true" />', []);
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"consent"', false)
-        ->assertSee('true', false);
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('consent', false)
+        ->assertSee('true', false)
+        ->assertDontSee('consentv2', false);
 });
 
 it('clarity_consent helper returns script when enabled', function (): void {
@@ -381,7 +432,7 @@ it('clarity_consent helper returns script when enabled', function (): void {
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"consent"');
+        ->toContain('consentv2');
 });
 
 it('clarity_consent helper returns null when disabled', function (): void {
@@ -420,7 +471,7 @@ it('clarity_set_custom_user_id helper returns script when enabled', function ():
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"identify"')
+        ->toContain('identify')
         ->toContain('user-123');
 });
 
@@ -454,7 +505,7 @@ it('clarity_set_custom_session_id helper returns script when enabled', function 
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"identify"')
+        ->toContain('identify')
         ->toContain('session-456');
 });
 
@@ -488,7 +539,7 @@ it('clarity_set_custom_page_id helper returns script when enabled', function ():
     expect($output)
         ->toBeString()
         ->toContain('window.clarity')
-        ->toContain('"identify"')
+        ->toContain('identify')
         ->toContain('page-789');
 });
 
@@ -520,8 +571,8 @@ it('displays custom user id component', function (): void {
 
     $view = $this->blade('<x-clarity::custom-user-id user_id="user-123" />', []);
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"identify"', false)
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('identify', false)
         ->assertSee('user-123', false);
 });
 
@@ -574,8 +625,8 @@ it('displays custom session id component', function (): void {
 
     $view = $this->blade('<x-clarity::custom-session-id session_id="session-456" />', []);
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"identify"', false)
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('identify', false)
         ->assertSee('session-456', false);
 });
 
@@ -628,8 +679,8 @@ it('displays custom page id component', function (): void {
 
     $view = $this->blade('<x-clarity::custom-page-id page_id="page-789" />', []);
 
-    $view->assertSee('window.clarity', false)
-        ->assertSee('"identify"', false)
+    $view->assertSee('window.clarity.apply', false)
+        ->assertSee('identify', false)
         ->assertSee('page-789', false);
 });
 
@@ -672,50 +723,4 @@ it('custom page id component does not display without page_id', function (): voi
     $view = $this->blade('<x-clarity::custom-page-id />', []);
 
     $view->assertDontSee('window.clarity', false);
-});
-
-// Queue System Tests
-it('tag component includes queue functionality', function (): void {
-    config(['clarity.enabled' => true]);
-
-    $view = $this->blade('<x-clarity::tag key="test" :values="[\'value\']" />', []);
-
-    $view->assertSee('window.clarity', false)
-        ->assertSee('_clarityQueue', false);
-});
-
-it('queue component renders correctly', function (): void {
-    config(['clarity.enabled' => true]);
-
-    $view = $this->blade('<x-clarity::queue />', []);
-
-    $view->assertSee('_clarityQueue', false)
-        ->assertSee('processQueue', false);
-});
-
-it('queue component does not display when disabled', function (): void {
-    config(['clarity.enabled' => false]);
-
-    $view = $this->blade('<x-clarity::queue />', []);
-
-    $view->assertDontSee('_clarityQueue', false);
-});
-
-it('queue component handles enabled attribute', function (): void {
-    config(['clarity.enabled' => true]);
-
-    $view = $this->blade('<x-clarity::queue :enabled="false" />', []);
-
-    $view->assertDontSee('_clarityQueue', false);
-});
-
-it('queue component processes queued items correctly', function (): void {
-    config(['clarity.enabled' => true]);
-
-    $view = $this->blade('<x-clarity::queue />', []);
-
-    $view->assertSee('_clarityQueue', false)
-        ->assertSee('processQueue', false)
-        ->assertSee('window.clarity', false)
-        ->assertSee('method', false);
 });

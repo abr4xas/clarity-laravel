@@ -18,14 +18,6 @@ final class ClarityLaravelServiceProvider extends PackageServiceProvider
             ->hasViews();
     }
 
-    public function packageRegistered(): void
-    {
-        // Load helper functions
-        if (file_exists($helpers = __DIR__.'/helpers.php')) {
-            require_once $helpers;
-        }
-    }
-
     public function boot(): void
     {
         parent::boot();

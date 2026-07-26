@@ -18,19 +18,24 @@
     ],
     "require": {
         "php": "^8.3",
-        "spatie/laravel-package-tools": "^1.92.7"
+        "spatie/laravel-package-tools": "^1.93.1"
     },
     "require-dev": {
-        "laravel/pint": "^1.26.0",
-        "orchestra/testbench": "^11.0.0",
-        "pestphp/pest": "^4.1.6",
-        "pestphp/pest-plugin-laravel": "^4.0",
-        "rector/rector": "^2.2.9"
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.29.3",
+        "orchestra/testbench": "^11.1.0",
+        "pestphp/pest": "^4.7.5",
+        "pestphp/pest-plugin-laravel": "^4.1",
+        "phpstan/extension-installer": "^1.4",
+        "rector/rector": "^2.5.5"
     },
     "autoload": {
         "psr-4": {
             "Abr4xas\\ClarityLaravel\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -42,10 +47,12 @@
         "lint": "pint",
         "test:refactor": "rector --dry-run",
         "test:lint": "pint --test",
+        "test:types": "phpstan analyse --no-progress",
         "test:unit": "pest --colors=always --parallel --no-coverage",
         "test": [
             "@test:refactor",
             "@test:lint",
+            "@test:types",
             "@test:unit"
         ]
     },

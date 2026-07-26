@@ -4,6 +4,31 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\View;
 
+if (! function_exists('clarity_render')) {
+    /**
+     * Guard on Clarity being enabled, then render a Clarity component view.
+     *
+     * Centralizes the `clarity.enabled` (and optional identify-API) checks so
+     * every helper shares a single source of truth for when a script is emitted.
+     *
+     * @internal Shared implementation for the clarity_* helpers.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    function clarity_render(string $component, array $data, bool $requiresIdentifyApi = false): ?string
+    {
+        if (! config('clarity.enabled', false)) {
+            return null;
+        }
+
+        if ($requiresIdentifyApi && ! config('clarity.enabled_identify_api', false)) {
+            return null;
+        }
+
+        return View::make('clarity::components.'.$component, ['enabled' => true] + $data)->render();
+    }
+}
+
 if (! function_exists('clarity_tag')) {
     /**
      * Set a custom tag for the current Clarity session.
@@ -14,10 +39,6 @@ if (! function_exists('clarity_tag')) {
      */
     function clarity_tag(string $key, mixed ...$values): ?string
     {
-        if (! config('clarity.enabled', false)) {
-            return null;
-        }
-
         $flatValues = [];
         foreach ($values as $value) {
             if (is_array($value)) {
@@ -27,11 +48,7 @@ if (! function_exists('clarity_tag')) {
             }
         }
 
-        return View::make('clarity::components.tag', [
-            'enabled' => true,
-            'key' => $key,
-            'values' => $flatValues,
-        ])->render();
+        return clarity_render('tag', ['key' => $key, 'values' => $flatValues]);
     }
 }
 
@@ -39,23 +56,18 @@ if (! function_exists('clarity_identify')) {
     /**
      * Identify a user for the current Clarity session.
      *
-     * @param  object  $user  The user object (should have email and name properties)
+     * @param  object  $user  User object exposing nullable `email` and `name` properties
      * @param  string|null  $customSessionId  Optional custom session ID
      * @param  string|null  $customPageId  Optional custom page ID
      * @return string|null The rendered script tag or null
      */
     function clarity_identify(object $user, ?string $customSessionId = null, ?string $customPageId = null): ?string
     {
-        if (! config('clarity.enabled', false) || ! config('clarity.enabled_identify_api', false)) {
-            return null;
-        }
-
-        return View::make('clarity::components.identify', [
-            'enabled' => true,
+        return clarity_render('identify', [
             'user' => $user,
             'custom_session_id' => $customSessionId,
             'custom_page_id' => $customPageId,
-        ])->render();
+        ], requiresIdentifyApi: true);
     }
 }
 
@@ -68,14 +80,7 @@ if (! function_exists('clarity_consent')) {
      */
     function clarity_consent(bool $granted = true): ?string
     {
-        if (! config('clarity.enabled', false)) {
-            return null;
-        }
-
-        return View::make('clarity::components.consent', [
-            'enabled' => true,
-            'granted' => $granted,
-        ])->render();
+        return clarity_render('consent', ['granted' => $granted]);
     }
 }
 
@@ -89,14 +94,7 @@ if (! function_exists('clarity_set_custom_user_id')) {
      */
     function clarity_set_custom_user_id(string $userId): ?string
     {
-        if (! config('clarity.enabled', false) || ! config('clarity.enabled_identify_api', false)) {
-            return null;
-        }
-
-        return View::make('clarity::components.custom-user-id', [
-            'enabled' => true,
-            'user_id' => $userId,
-        ])->render();
+        return clarity_render('custom-user-id', ['user_id' => $userId], requiresIdentifyApi: true);
     }
 }
 
@@ -110,14 +108,7 @@ if (! function_exists('clarity_set_custom_session_id')) {
      */
     function clarity_set_custom_session_id(string $sessionId): ?string
     {
-        if (! config('clarity.enabled', false) || ! config('clarity.enabled_identify_api', false)) {
-            return null;
-        }
-
-        return View::make('clarity::components.custom-session-id', [
-            'enabled' => true,
-            'session_id' => $sessionId,
-        ])->render();
+        return clarity_render('custom-session-id', ['session_id' => $sessionId], requiresIdentifyApi: true);
     }
 }
 
@@ -131,13 +122,6 @@ if (! function_exists('clarity_set_custom_page_id')) {
      */
     function clarity_set_custom_page_id(string $pageId): ?string
     {
-        if (! config('clarity.enabled', false) || ! config('clarity.enabled_identify_api', false)) {
-            return null;
-        }
-
-        return View::make('clarity::components.custom-page-id', [
-            'enabled' => true,
-            'page_id' => $pageId,
-        ])->render();
+        return clarity_render('custom-page-id', ['page_id' => $pageId], requiresIdentifyApi: true);
     }
 }
