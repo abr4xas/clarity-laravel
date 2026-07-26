@@ -2,6 +2,19 @@
 
 All notable changes to `clarity-laravel` will be documented in this file.
 
+## v3.0.0 - 2026-07-26
+
+### What's Changed
+
+* ⬆️ Bump dependabot/fetch-metadata from 2.4.0 to 2.5.0 by @dependabot[bot] in https://github.com/abr4xas/clarity-laravel/pull/20
+* ⬆️ Update orchestra/testbench requirement from ^10.8.0 to ^11.0.0 by @dependabot[bot] in https://github.com/abr4xas/clarity-laravel/pull/21
+* ⬆️ Bump dependabot/fetch-metadata from 2.5.0 to 3.0.0 by @dependabot[bot] in https://github.com/abr4xas/clarity-laravel/pull/22
+* ⬆️ Bump dependabot/fetch-metadata from 3.0.0 to 3.1.0 by @dependabot[bot] in https://github.com/abr4xas/clarity-laravel/pull/23
+* ⬆️ Bump actions/checkout from 6 to 7 by @dependabot[bot] in https://github.com/abr4xas/clarity-laravel/pull/24
+* v3: ClarityCommand refactor + native buffering, and Laravel 13 maintenance by @abr4xas in https://github.com/abr4xas/clarity-laravel/pull/25
+
+**Full Changelog**: https://github.com/abr4xas/clarity-laravel/compare/v2.0.0...v3.0.0
+
 ## v2.0.0 - 2025-12-01
 
 ### What's Changed
